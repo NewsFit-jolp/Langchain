@@ -1,24 +1,31 @@
-import json
-import os
-import openai
-
+from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema.output_parser import StrOutputParser
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.pydantic_v1 import BaseModel, Field
 
-prompt = ChatPromptTemplate.from_template("{topic} 에 대해서 알려줘.")
+model = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
 
-model = ChatOpenAI()
-output_parser = StrOutputParser()
+
+class Response(BaseModel):
+    title: str = Field(description="title of an Article")
+    content: str = Field(description="summarization of an Article")
+    category: str = Field(description="category of an Article")
+
+
+output_parser = JsonOutputParser(pydantic_object=Response)
+
+format_instructions = output_parser.get_format_instructions()
+
+prompt = PromptTemplate(
+    template="""Answer the user query. 
+    {format_instructions}
+    Write a concise summary of the following article in Korean:
+    {text}"
+    CONSICE SUMMARY:""",
+    input_variables={"text"},
+    partial_variables={"format_instructions": format_instructions}
+)
 
 chain = prompt | model | output_parser
-
-result = chain.invoke({"topic": "손흥민"})
-
-
-def lang(topic):
-    return chain.invoke({"topic": topic})
-
-
 def lambda_handler(event, context):
-    return lang(event["topic"])
+    return chain.invoke({"text": event["article"]})
