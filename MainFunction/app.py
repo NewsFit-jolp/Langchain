@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field
 
-model = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
+model = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0, max_tokens=1000)
 
 
 class Response(BaseModel):
@@ -27,5 +27,7 @@ prompt = PromptTemplate(
 )
 
 chain = prompt | model | output_parser
+
+
 def lambda_handler(event, context):
     return chain.invoke({"text": event["article"]})
